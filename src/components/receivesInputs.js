@@ -1,60 +1,62 @@
-
 /**
- * 
- * Input processing component - gets (key) input state and  
- * applies it to receiving entities by updating their movement 
+ *
+ * Input processing component - gets (key) input state and
+ * applies it to receiving entities by updating their movement
  * component state (heading, movespeed, jumping, etc.)
- * 
+ *
  */
 
 export default function (noa) {
-    return {
+	return {
+		name: 'receivesInputs',
 
-        name: 'receivesInputs',
+		order: 20,
 
-        order: 20,
+		state: {
+			ignore: false,
+			x: 1,
+			y: 1,
+		},
 
-        state: {},
+		onAdd: null,
 
-        onAdd: null,
+		onRemove: null,
 
-        onRemove: null,
+		system: function inputProcessor(dt, states) {
+			var ents = noa.entities;
+			var inputState = noa.inputs.state;
+			var camHeading = noa.camera.heading;
 
-        system: function inputProcessor(dt, states) {
-            var ents = noa.entities
-            var inputState = noa.inputs.state
-            var camHeading = noa.camera.heading
-
-            states.forEach(state => {
-                var moveState = ents.getMovement(state.__id)
-                setMovementState(moveState, inputState, camHeading)
-            })
-        }
-
-    }
+			states.forEach((state) => {
+				var moveState = ents.getMovement(state.__id);
+				setMovementState(moveState, inputState, camHeading, state.ignore, state.x, state.y);
+			});
+		},
+	};
 }
 
+function setMovementState(state, inputs, camHeading, ignore, x, y) {
+	if (ignore) state.jumping = false;
+	else state.jumping = !!inputs.jump;
 
+	state.xMulp = x;
+	state.yMulp = y;
 
-function setMovementState(state, inputs, camHeading) {
-    state.jumping = !!inputs.jump
+	var fb = inputs.forward ? (inputs.backward ? 0 : 1) : inputs.backward ? -1 : 0;
+	var rl = inputs.right ? (inputs.left ? 0 : 1) : inputs.left ? -1 : 0;
 
-    var fb = inputs.forward ? (inputs.backward ? 0 : 1) : (inputs.backward ? -1 : 0)
-    var rl = inputs.right ? (inputs.left ? 0 : 1) : (inputs.left ? -1 : 0)
-
-    if ((fb | rl) === 0) {
-        state.running = false
-    } else {
-        state.running = true
-        if (fb) {
-            if (fb == -1) camHeading += Math.PI
-            if (rl) {
-                camHeading += Math.PI / 4 * fb * rl // didn't plan this but it works!
-            }
-        } else {
-            camHeading += rl * Math.PI / 2
-        }
-        state.heading = camHeading
-    }
-
+	if ((fb | rl) === 0 || ignore) {
+		state.running = false;
+	} else {
+		state.running = true;
+		if (fb) {
+			if (fb == -1) camHeading += Math.PI;
+			if (rl) {
+				camHeading += (Math.PI / 4) * fb * rl; // didn't plan this but it works!
+			}
+		} else {
+			camHeading += (rl * Math.PI) / 2;
+		}
+		state.heading = camHeading;
+	}
 }
