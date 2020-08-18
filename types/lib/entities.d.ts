@@ -60,6 +60,9 @@ export declare class Entities {
         meshOffset?: number[],
         doPhysics?: boolean,
         shadow?: boolean
-    ): any;
+	): any;
+
+	deleteEntity(id): void;
+	getState(id: number, name: string): any;
 }
 export {};

@@ -1,4 +1,5 @@
 export default Engine;
+import { EventEmitter } from 'events';
 
 type EngineOptions = Partial<
     {
@@ -56,7 +57,7 @@ type EngineOptions = Partial<
  * Extends: `EventEmitter`
  */
 declare module "noa-engine" {
-    export class Engine {
+	export class Engine extends EventEmitter {
         /**
          * Main engine object.
          * Takes a big options object full of flags and settings as a parameter.
