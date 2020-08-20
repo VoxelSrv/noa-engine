@@ -181,7 +181,8 @@ declare module "noa-engine" {
         setPaused(paused: any): void;
         getBlock(x: number, y: number, z: number): any;
         setBlock(id: number, x: number, y: number, z: number): any;
-        addBlock(id: number, x: number, y: number, z: number): any;
+		addBlock(id: number, x: number, y: number, z: number): any;
+		on(name: string, callback: Function): any;
         pick(
             pos: number[],
             vec: number[],
