@@ -273,7 +273,6 @@ Engine.prototype.tick = function () {
 	var dt = this._tickRate; // fixed timesteps!
 	this.world.tick(dt); // chunk creation/removal
 	profile_hook('world');
-	this.rendering.tick(dt);
 	this.physics.tick(dt); // iterates physics
 	profile_hook('physics');
 	this.rendering.tick(dt); // does deferred chunk meshing
