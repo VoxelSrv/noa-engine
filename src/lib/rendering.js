@@ -82,7 +82,7 @@ function initScene(self, canvas, opts) {
 	// init internal properties
 	self._engine = new Engine(canvas, opts.antiAlias, {
 		preserveDrawingBuffer: opts.preserveDrawingBuffer,
-	});
+	}, opts.adaptToDeviceRatio);
 
 	self._multiscenes = new Array();
 
