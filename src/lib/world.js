@@ -70,6 +70,8 @@ function World(noa, opts) {
     initChunkQueues(this)
     initChunkStorage(this)
 
+    this.removeChunk = function(id) { removeChunk(this, id)}
+
     // instantiate coord conversion functions based on the chunk size
     // use bit twiddling if chunk size is a power of 2
     var cs = this.chunkSize
