@@ -19,7 +19,7 @@
     ],
     "license": "MIT",
     "dependencies": {
-        "@babylonjs/core": "^4.2.0-alpha.35",
+        "@babylonjs/core": "^4.2.0-beta.3",
         "aabb-3d": "github:andyhall/aabb-3d",
         "box-intersect": "^1.0.2",
         "ent-comp": "^0.9.1",
