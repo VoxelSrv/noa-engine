@@ -557,12 +557,9 @@ function setChunkData(world, reqID, array, userData) {
     var i = parseInt(arr.shift())
     var j = parseInt(arr.shift())
     var k = parseInt(arr.shift())
-    var worldName = arr.join('|')
     world._chunksPending.remove(i, j, k)
     // discard data if it's for a world that's no longer current
-    if (worldName !== world.noa.worldName) return
     // discard if chunk is no longer needed
-    if (!world._chunksKnown.includes(i, j, k)) return
     if (world._chunksToRemove.includes(i, j, k)) return
 
     var chunk = world._storage.getChunkByIndexes(i, j, k)
