@@ -1,17 +1,21 @@
-var glvec3 = require('gl-vec3');
-import { removeUnorderedListItem } from './util';
+var glvec3 = require('gl-vec3')
+import { removeUnorderedListItem } from './util'
 
-import { Scene } from '@babylonjs/core/scene';
-import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
-import { Octree } from '@babylonjs/core/Culling/Octrees/octree';
-import { OctreeBlock } from '@babylonjs/core/Culling/Octrees/octreeBlock';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Vector3, Color3 } from '@babylonjs/core/Maths/math';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { OctreeSceneComponent } from '@babylonjs/core/Culling/Octrees/';
-import '@babylonjs/core/Meshes/meshBuilder';
+import { Scene } from '@babylonjs/core/scene'
+import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera'
+import { Octree } from '@babylonjs/core/Culling/Octrees/octree'
+import { OctreeBlock } from '@babylonjs/core/Culling/Octrees/octreeBlock'
+import { Engine } from '@babylonjs/core/Engines/engine'
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
+import { Color3 } from '@babylonjs/core/Maths/math.color'
+import { Vector3 } from '@babylonjs/core/Maths/math.vector'
+import { Mesh } from '@babylonjs/core/Meshes/mesh'
+import { OctreeSceneComponent } from '@babylonjs/core/Culling/Octrees/'
+import '@babylonjs/core/Meshes/Builders/planeBuilder'
+import '@babylonjs/core/Meshes/Builders/linesBuilder'
+
+
 
 export default function (noa, opts, canvas) {
 	return new Rendering(noa, opts, canvas);
