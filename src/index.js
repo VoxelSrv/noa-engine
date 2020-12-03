@@ -26,19 +26,22 @@ var PROFILE = 0;
 var PROFILE_RENDER = 0;
 
 var defaults = {
-	debug: false,
-	silent: false,
-	playerHeight: 1.8,
-	playerWidth: 0.6,
-	playerStart: [0, 10, 0],
-	playerAutoStep: false,
-	tickRate: 33, // ms per tick - not ticks per second
-	blockTestDistance: 10,
-	stickyPointerLock: true,
-	dragCameraOutsidePointerLock: true,
-	skipDefaultHighlighting: false,
-	originRebaseDistance: 25,
-};
+    debug: false,
+    silent: false,
+    playerHeight: 1.8,
+    playerWidth: 0.6,
+    playerStart: [0, 10, 0],
+    playerAutoStep: false,
+    tickRate: 30,           // ticks per second
+    maxRenderRate: 0,       // max FPS, 0 for uncapped 
+    blockTestDistance: 10,
+    stickyPointerLock: true,
+    dragCameraOutsidePointerLock: true,
+    stickyFullscreen: false,
+    skipDefaultHighlighting: false,
+    originRebaseDistance: 25,
+}
+
 
 /**
  * Main engine object.
@@ -52,10 +55,12 @@ var defaults = {
  *     playerWidth: 0.6,
  *     playerStart: [0, 10, 0],
  *     playerAutoStep: false,
- *     tickRate: 33, // ms per tick - not ticks per second
+ *     tickRate: 30,           // ticks per second
+ *     maxRenderRate: 0,       // max FPS, 0 for uncapped 
  *     blockTestDistance: 10,
  *     stickyPointerLock: true,
  *     dragCameraOutsidePointerLock: true,
+ *     stickyFullscreen: false,
  *     skipDefaultHighlighting: false,
  *     originRebaseDistance: 25,
  * }
@@ -81,171 +86,176 @@ var defaults = {
  */
 
 function Engine(opts) {
-	if (!(this instanceof Engine)) return new Engine(opts);
+    if (!(this instanceof Engine)) return new Engine(opts)
 
-	/**  version string, e.g. `"0.25.4"` */
-	this.version = require('../package.json').version;
+    /**  version string, e.g. `"0.25.4"` */
+    this.version = require('../package.json').version
 
-	opts = Object.assign({}, defaults, opts);
-	this._tickRate = opts.tickRate;
-	this._lastRenderTime = 0;
-	this._paused = false;
-	this._dragOutsideLock = opts.dragCameraOutsidePointerLock;
-	var self = this;
+    opts = Object.assign({}, defaults, opts)
+    this._paused = false
+    this._dragOutsideLock = opts.dragCameraOutsidePointerLock
+    var self = this
 
-	if (!opts.silent) {
-		var debugstr = opts.debug ? ' (debug)' : '';
-		console.log(`noa-engine v${this.version}${debugstr}`);
-	}
+    if (!opts.silent) {
+        var debugstr = (opts.debug) ? ' (debug)' : ''
+        console.log(`noa-engine v${this.version}${debugstr}`)
+    }
 
-	// world origin offset, used throughout engine for origin rebasing
-	this.worldOriginOffset = [0, 0, 0];
-	this._originRebaseDistance = opts.originRebaseDistance;
+    // world origin offset, used throughout engine for origin rebasing
+    this.worldOriginOffset = [0, 0, 0]
+    this._originRebaseDistance = opts.originRebaseDistance
 
-	// vec3 library used throughout the engine
-	this.vec3 = vec3;
+    // vec3 library used throughout the engine
+    this.vec3 = vec3
 
-	// how far engine is into the current tick. Updated each render.
-	this.positionInCurrentTick = 0;
+    // how far engine is into the current tick. Updated each render.
+    this.positionInCurrentTick = 0
 
-	/** String identifier for the current world. (It's safe to ignore this if
-	 * your game doesn't need to swap between levels/worlds.)
-	 */
-	this.worldName = 'default';
+    /** String identifier for the current world. (It's safe to ignore this if
+     * your game doesn't need to swap between levels/worlds.)
+     */
+    this.worldName = 'default'
 
-	/**
-	 * container (html/div) manager
-	 * @type {Container}
-	 */
-	this.container = createContainer(this, opts);
+    /**
+     * container (html/div) manager
+     * @type {Container}
+     */
+    this.container = createContainer(this, opts)
+    Object.defineProperty(this, 'tickRate', {
+        get: () => this.container._shell.tickRate
+    })
+    Object.defineProperty(this, 'maxRenderRate', {
+        get: () => this.container._shell.maxRenderRate,
+        set: (v) => { this.container._shell.maxRenderRate = v || 0 },
+    })
 
-	/**
-	 * inputs manager - abstracts key/mouse input
-	 * @type {Inputs}
-	 */
-	this.inputs = createInputs(this, opts, this.container.element);
+    /**
+     * inputs manager - abstracts key/mouse input
+     * @type {Inputs}
+     */
+    this.inputs = createInputs(this, opts, this.container.element)
 
-	/**
-	 * block/item property registry
-	 * @type {Registry}
-	 */
-	this.registry = createRegistry(this, opts);
+    /**
+     * block/item property registry
+     * @type {Registry}
+     */
+    this.registry = createRegistry(this, opts)
 
-	/**
-	 * world manager
-	 * @type {World}
-	 */
-	this.world = createWorld(this, opts);
+    /**
+     * world manager
+     * @type {World}
+     */
+    this.world = createWorld(this, opts)
 
-	/**
-	 * Rendering manager
-	 * @type {Rendering}
-	 */
-	this.rendering = createRendering(this, opts, this.container.canvas);
+    /**
+     * Rendering manager
+     * @type {Rendering}
+     */
+    this.rendering = createRendering(this, opts, this.container.canvas)
 
-	/**
-	 * physics engine - solves collisions, properties, etc.
-	 * @type {Physics}
-	 */
-	this.physics = createPhysics(this, opts);
+    /**
+     * physics engine - solves collisions, properties, etc.
+     * @type {Physics}
+     */
+    this.physics = createPhysics(this, opts)
 
-	/** Entity manager / Entity Component System (ECS)
-	 * Aliased to `noa.ents` for convenience.
-	 * @type {Entities}
-	 */
-	this.entities = createEntities(this, opts);
-	this.ents = this.entities;
-	var ents = this.ents;
+    /** Entity manager / Entity Component System (ECS) 
+     * Aliased to `noa.ents` for convenience.
+     * @type {Entities}
+     */
+    this.entities = createEntities(this, opts)
+    this.ents = this.entities
+    var ents = this.ents
 
-	/** Entity id for the player entity */
-	this.playerEntity = ents.add(
-		opts.playerStart, // starting location
-		opts.playerWidth,
-		opts.playerHeight,
-		null,
-		null, // no mesh for now, no meshOffset,
-		true,
-		true
-	);
+    /** Entity id for the player entity */
+    this.playerEntity = ents.add(
+        opts.playerStart, // starting location
+        opts.playerWidth, opts.playerHeight,
+        null, null, // no mesh for now, no meshOffset, 
+        true, true
+    )
 
-	// make player entity it collide with terrain and other entities
-	ents.addComponent(this.playerEntity, ents.names.collideTerrain);
-	ents.addComponent(this.playerEntity, ents.names.collideEntities);
+    // make player entity it collide with terrain and other entities
+    ents.addComponent(this.playerEntity, ents.names.collideTerrain)
+    ents.addComponent(this.playerEntity, ents.names.collideEntities)
 
-	// adjust default physics parameters
-	var body = ents.getPhysicsBody(this.playerEntity);
-	body.gravityMultiplier = 2; // less floaty
-	body.autoStep = opts.playerAutoStep; // auto step onto blocks
+    // adjust default physics parameters
+    var body = ents.getPhysicsBody(this.playerEntity)
+    body.gravityMultiplier = 2 // less floaty
+    body.autoStep = opts.playerAutoStep // auto step onto blocks
 
-	// input component - sets entity's movement state from key inputs
-	ents.addComponent(this.playerEntity, ents.names.receivesInputs);
+    // input component - sets entity's movement state from key inputs
+    ents.addComponent(this.playerEntity, ents.names.receivesInputs)
 
-	// add a component to make player mesh fade out when zooming in
-	ents.addComponent(this.playerEntity, ents.names.fadeOnZoom);
+    // add a component to make player mesh fade out when zooming in
+    ents.addComponent(this.playerEntity, ents.names.fadeOnZoom)
 
-	// movement component - applies movement forces
-	// todo: populate movement settings from options
-	var moveOpts = {
-		airJumps: 1,
-	};
-	ents.addComponent(this.playerEntity, ents.names.movement, moveOpts);
+    // movement component - applies movement forces
+    // todo: populate movement settings from options
+    var moveOpts = {
+        airJumps: 1
+    }
+    ents.addComponent(this.playerEntity, ents.names.movement, moveOpts)
 
-	/**
-	 * Manages camera, view angle, etc.
-	 * @type {Camera}
-	 */
-	this.camera = createCamera(this, opts);
 
-	// set up block targeting
-	this.blockTestDistance = opts.blockTestDistance;
+    /**
+     * Manages camera, view angle, etc.
+     * @type {Camera}
+     */
+    this.camera = createCamera(this, opts)
 
-	/** function for which block IDs are targetable.
-	 * Defaults to a solidity check, but can be overridden */
-	this.blockTargetIdCheck = this.registry.getBlockSolidity;
 
-	/** Dynamically updated object describing the currently targeted block.
-	 * Gets updated each tick, to `null` if not block is targeted, or
-	 * to an object like:
-	 *
-	 *     {
-	 *        blockID,   // voxel ID
-	 *        position,  // the (solid) block being targeted
-	 *        adjacent,  // the (non-solid) block adjacent to the targeted one
-	 *        normal,    // e.g. [0, 1, 0] when player is targting the top face of a voxel
-	 *     }
-	 */
-	this.targetedBlock = null;
+    // set up block targeting
+    this.blockTestDistance = opts.blockTestDistance
 
-	// add a default block highlighting function
-	if (!opts.skipDefaultHighlighting) {
-		// the default listener, defined onto noa in case people want to remove it later
-		this.defaultBlockHighlightFunction = function (tgt) {
-			if (tgt) {
-				self.rendering.highlightBlockFace(true, tgt.position, tgt.normal);
-			} else {
-				self.rendering.highlightBlockFace(false);
-			}
-		};
-		this.on('targetBlockChanged', this.defaultBlockHighlightFunction);
-	}
+    /** function for which block IDs are targetable. 
+     * Defaults to a solidity check, but can be overridden */
+    this.blockTargetIdCheck = this.registry.getBlockSolidity
 
-	// temp hacks for development
-	if (opts.debug) {
-		window.noa = this;
-		window.scene = this.rendering._scene;
-		window.ndarray = ndarray;
-		window.vec3 = vec3;
-		ents.getMovement(1).airJumps = 999;
-		this.setViewDistance = function (dist) {
-			var cs = this.world.chunkSize;
-			this.world.chunkAddDistance = dist / cs;
-			this.world.chunkRemoveDistance = dist / cs + 1;
-			this.world._lastPlayerChunkID = ''; // pings noa's chunk queues
-		};
-	}
+    /** Dynamically updated object describing the currently targeted block.
+     * Gets updated each tick, to `null` if not block is targeted, or 
+     * to an object like:
+     * 
+     *     {
+     *        blockID,   // voxel ID
+     *        position,  // the (solid) block being targeted
+     *        adjacent,  // the (non-solid) block adjacent to the targeted one
+     *        normal,    // e.g. [0, 1, 0] when player is targting the top face of a voxel
+     *     }
+     */
+    this.targetedBlock = null
 
-	// add hooks to throw helpful errors when using deprecated methods
-	deprecateStuff(this);
+    // add a default block highlighting function
+    if (!opts.skipDefaultHighlighting) {
+        // the default listener, defined onto noa in case people want to remove it later
+        this.defaultBlockHighlightFunction = function (tgt) {
+            if (tgt) {
+                self.rendering.highlightBlockFace(true, tgt.position, tgt.normal)
+            } else {
+                self.rendering.highlightBlockFace(false)
+            }
+        }
+        this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
+    }
+
+
+    // temp hacks for development
+    if (opts.debug) {
+        window.noa = this
+        window.scene = this.rendering._scene
+        window.ndarray = ndarray
+        window.vec3 = vec3
+        ents.getMovement(1).airJumps = 999
+        this.setViewDistance = function (dist) {
+            var cs = this.world.chunkSize
+            this.world.chunkAddDistance = dist / cs
+            this.world.chunkRemoveDistance = dist / cs + 1
+            this.world._lastPlayerChunkID = '' // pings noa's chunk queues
+        }
+    }
+
+    // add hooks to throw helpful errors when using deprecated methods
+    deprecateStuff(this)
 }
 
 Engine.prototype = Object.create(EventEmitter.prototype);
@@ -263,88 +273,99 @@ Engine.prototype = Object.create(EventEmitter.prototype);
  * where dt is the tick rate in ms (default 16.6)
  */
 
-Engine.prototype.tick = function () {
-	if (this._paused) {
-		if (this.world.worldGenWhilePaused) this.world.tick(dt);
-		return;
-	}
-	profile_hook('start');
-	checkWorldOffset(this);
-	var dt = this._tickRate; // fixed timesteps!
-	this.world.tick(dt); // chunk creation/removal
-	profile_hook('world');
-	this.physics.tick(dt); // iterates physics
-	profile_hook('physics');
-	this.rendering.tick(dt); // does deferred chunk meshing
-	profile_hook('rendering');
-	updateBlockTargets(this); // finds targeted blocks, and highlights one if needed
-	profile_hook('targets');
-	this.entities.tick(dt); // runs all entity systems
-	profile_hook('entities');
-	this.emit('tick', dt);
-	profile_hook('tick event');
-	profile_hook('end');
-	// clear accumulated scroll inputs (mouseMove is cleared on render)
-	var st = this.inputs.state;
-	st.scrollx = st.scrolly = st.scrollz = 0;
-};
+
+Engine.prototype.tick = function (dt) {
+    // note dt is a fixed value, not an observed delay
+    if (this._paused) {
+        if (this.world.worldGenWhilePaused) this.world.tick(dt)
+        return
+    }
+    profile_hook('start')
+    checkWorldOffset(this)
+    this.world.tick(dt) // chunk creation/removal
+    profile_hook('world')
+    this.rendering.tick(dt)
+    this.physics.tick(dt) // iterates physics
+    profile_hook('physics')
+    this.rendering.tick(dt) // does deferred chunk meshing
+    profile_hook('rendering')
+    updateBlockTargets(this) // finds targeted blocks, and highlights one if needed
+    profile_hook('targets')
+    this.entities.tick(dt) // runs all entity systems
+    profile_hook('entities')
+    this.emit('tick', dt)
+    profile_hook('tick event')
+    profile_hook('end')
+    // clear accumulated scroll inputs (mouseMove is cleared on render)
+    var st = this.inputs.state
+    st.scrollx = st.scrolly = st.scrollz = 0
+}
+
+
+
+
 
 /*
  * Render function, called every animation frame. Emits #beforeRender(dt), #afterRender(dt)
  * where dt is the time in ms *since the last tick*.
  */
 
-Engine.prototype.render = function (framePart) {
-	// frame position - for rendering movement between ticks
-	this.positionInCurrentTick = framePart;
-	// dt - actual time difference (in ms), for animating things
-	// that aren't tied to game tick rate
-	var t = performance.now();
-	var dt = t - (this._lastRenderTime || t - 16);
-	this._lastRenderTime = t;
+Engine.prototype.render = function (framePart, dt) {
+    // note: framePart is how far we are into the current tick
+    // dt is the *actual* time (ms) since last render, for
+    // animating things that aren't tied to game tick rate
 
-	// when paused, just optionally ping worldgen, then exit
-	if (this._paused) {
-		if (this.world.worldGenWhilePaused) this.world.render();
-		return;
-	}
+    // frame position - for rendering movement between ticks
+    this.positionInCurrentTick = framePart
 
-	profile_hook_render('start');
+    // when paused, just optionally ping worldgen, then exit
+    if (this._paused) {
+        if (this.world.worldGenWhilePaused) this.world.render()
+        return
+    }
 
-	// only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-	if (
-		this.container.hasPointerLock ||
-		!this.container.supportsPointerLock ||
-		(this._dragOutsideLock && this.inputs.state.fire)
-	) {
-		this.camera.applyInputsToCamera();
-	}
-	profile_hook_render('init');
+    profile_hook_render('start')
 
-	// brief run through meshing queue
-	this.world.render(dt);
-	profile_hook_render('meshing');
+    // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
+    if (this.container.hasPointerLock ||
+        !this.container.supportsPointerLock ||
+        (this._dragOutsideLock && this.inputs.state.fire)) {
+        this.camera.applyInputsToCamera()
+    }
+    profile_hook_render('init')
 
-	// entity render systems
-	this.camera.updateBeforeEntityRenderSystems();
-	this.entities.render(dt);
-	this.camera.updateAfterEntityRenderSystems();
-	profile_hook_render('entities');
+    // brief run through meshing queue
+    this.world.render(dt)
+    profile_hook_render('meshing')
 
-	// events and render
-	this.emit('beforeRender', dt);
-	profile_hook_render('before render');
+    // entity render systems
+    this.camera.updateBeforeEntityRenderSystems()
+    this.entities.render(dt)
+    this.camera.updateAfterEntityRenderSystems()
+    profile_hook_render('entities')
 
-	this.rendering.render(dt);
-	profile_hook_render('render');
+    // events and render
+    this.emit('beforeRender', dt)
+    profile_hook_render('before render')
 
-	this.emit('afterRender', dt);
-	profile_hook_render('after render');
-	profile_hook_render('end');
+    this.rendering.render(dt)
+    profile_hook_render('render')
 
-	// clear accumulated mouseMove inputs (scroll inputs cleared on render)
-	this.inputs.state.dx = this.inputs.state.dy = 0;
-};
+    this.emit('afterRender', dt)
+    profile_hook_render('after render')
+    profile_hook_render('end')
+
+    // clear accumulated mouseMove inputs (scroll inputs cleared on render)
+    this.inputs.state.dx = this.inputs.state.dy = 0
+}
+
+
+
+
+
+
+
+
 
 /*
  *   Rebasing local <-> global coords
@@ -576,34 +597,35 @@ var _prevTargetHash = '';
  */
 
 function deprecateStuff(noa) {
-	var ver = `0.27`;
-	var dep = (loc, name, msg) => {
-		var throwFn = () => {
-			throw `This property changed in ${ver} - ${msg}`;
-		};
-		Object.defineProperty(loc, name, { get: throwFn, set: throwFn });
-	};
-	dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`');
-	dep(noa, 'setPlayerEyePosition', 'to set the camera/player offset see API docs for `noa.camera.cameraTarget`');
-	dep(noa, 'getPlayerPosition', 'use `noa.ents.getPosition(noa.playerEntity)` or similar');
-	dep(noa, 'getCameraVector', 'use `noa.camera.getDirection`');
-	dep(noa, 'getPlayerMesh', 'use `noa.ents.getMeshData(noa.playerEntity).mesh` or similar');
-	dep(noa, 'playerBody', 'use `noa.ents.getPhysicsBody(noa.playerEntity)`');
-	dep(noa.rendering, 'zoomDistance', 'use `noa.camera.zoomDistance`');
-	dep(noa.rendering, '_currentZoom', 'use `noa.camera.currentZoom`');
-	dep(noa.rendering, '_cameraZoomSpeed', 'use `noa.camera.zoomSpeed`');
-	dep(noa.rendering, 'getCameraVector', 'use `noa.camera.getDirection`');
-	dep(noa.rendering, 'getCameraPosition', 'use `noa.camera.getLocalPosition`');
-	dep(noa.rendering, 'getCameraRotation', 'use `noa.camera.heading` and `noa.camera.pitch`');
-	dep(noa.rendering, 'setCameraRotation', 'to customize camera behavior see API docs for `noa.camera`');
-	ver = '0.28';
-	dep(noa.rendering, 'makeMeshInstance', "removed, use Babylon's `mesh.createInstance`");
-	dep(noa.world, '_maxChunksPendingCreation', 'use `maxChunksPendingCreation` (no "_")');
-	dep(noa.world, '_maxChunksPendingMeshing', 'use `maxChunksPendingMeshing` (no "_")');
-	dep(noa.world, '_maxProcessingPerTick', 'use `maxProcessingPerTick` (no "_")');
-	dep(noa.world, '_maxProcessingPerRender', 'use `maxProcessingPerRender` (no "_")');
-	ver = '0.29';
-	dep(noa, '_constants', 'removed, voxel IDs are no longer packed with bit flags');
+    var ver = `0.27`
+    var dep = (loc, name, msg) => {
+        var throwFn = () => { throw `This property changed in ${ver} - ${msg}` }
+        Object.defineProperty(loc, name, { get: throwFn, set: throwFn })
+    }
+    dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`')
+    dep(noa, 'setPlayerEyePosition', 'to set the camera/player offset see API docs for `noa.camera.cameraTarget`')
+    dep(noa, 'getPlayerPosition', 'use `noa.ents.getPosition(noa.playerEntity)` or similar')
+    dep(noa, 'getCameraVector', 'use `noa.camera.getDirection`')
+    dep(noa, 'getPlayerMesh', 'use `noa.ents.getMeshData(noa.playerEntity).mesh` or similar')
+    dep(noa, 'playerBody', 'use `noa.ents.getPhysicsBody(noa.playerEntity)`')
+    dep(noa.rendering, 'zoomDistance', 'use `noa.camera.zoomDistance`')
+    dep(noa.rendering, '_currentZoom', 'use `noa.camera.currentZoom`')
+    dep(noa.rendering, '_cameraZoomSpeed', 'use `noa.camera.zoomSpeed`')
+    dep(noa.rendering, 'getCameraVector', 'use `noa.camera.getDirection`')
+    dep(noa.rendering, 'getCameraPosition', 'use `noa.camera.getLocalPosition`')
+    dep(noa.rendering, 'getCameraRotation', 'use `noa.camera.heading` and `noa.camera.pitch`')
+    dep(noa.rendering, 'setCameraRotation', 'to customize camera behavior see API docs for `noa.camera`')
+    ver = '0.28'
+    dep(noa.rendering, 'makeMeshInstance', 'removed, use Babylon\'s `mesh.createInstance`')
+    dep(noa.world, '_maxChunksPendingCreation', 'use `maxChunksPendingCreation` (no "_")')
+    dep(noa.world, '_maxChunksPendingMeshing', 'use `maxChunksPendingMeshing` (no "_")')
+    dep(noa.world, '_maxProcessingPerTick', 'use `maxProcessingPerTick` (no "_")')
+    dep(noa.world, '_maxProcessingPerRender', 'use `maxProcessingPerRender` (no "_")')
+    ver = '0.29'
+    dep(noa, '_constants', 'removed, voxel IDs are no longer packed with bit flags')
+    ver = '0.30'
+    dep(noa, '_tickRate', 'tickRate is now at `noa.tickRate`')
+    dep(noa.container, '_tickRate', 'tickRate is now at `noa.tickRate`')
 }
 
 import { makeProfileHook } from './lib/util';

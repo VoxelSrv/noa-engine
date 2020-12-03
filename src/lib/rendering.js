@@ -45,40 +45,39 @@ var defaults = {
  */
 
 function Rendering(noa, opts, canvas) {
-	this.noa = noa;
+    this.noa = noa
 
-	/**
-	 * `noa.rendering` uses the following options (from the root `noa(opts)` options):
-	 * ```js
-	 * {
-	 *   showFPS: false,
-	 *   antiAlias: true,
-	 *   clearColor: [0.8, 0.9, 1],
-	 *   ambientColor: [1, 1, 1],
-	 *   lightDiffuse: [1, 1, 1],
-	 *   lightSpecular: [1, 1, 1],
-	 *   groundLightColor: [0.5, 0.5, 0.5],
-	 *   useAO: true,
-	 *   AOmultipliers: [0.93, 0.8, 0.5],
-	 *   reverseAOmultiplier: 1.0,
-	 *   preserveDrawingBuffer: true,
-	 * }
-	 * ```
-	 */
-	opts = Object.assign({}, defaults, opts);
+    /**
+     * `noa.rendering` uses the following options (from the root `noa(opts)` options):
+     * ```js
+     * {
+     *   showFPS: false,
+     *   antiAlias: true,
+     *   clearColor: [0.8, 0.9, 1],
+     *   ambientColor: [1, 1, 1],
+     *   lightDiffuse: [1, 1, 1],
+     *   lightSpecular: [1, 1, 1],
+     *   groundLightColor: [0.5, 0.5, 0.5],
+     *   useAO: true,
+     *   AOmultipliers: [0.93, 0.8, 0.5],
+     *   reverseAOmultiplier: 1.0,
+     *   preserveDrawingBuffer: true,
+     * }
+     * ```
+     */
+    opts = Object.assign({}, defaults, opts)
 
-	// internals
-	this.useAO = !!opts.useAO;
-	this.aoVals = opts.AOmultipliers;
-	this.revAoVal = opts.reverseAOmultiplier;
-	this.meshingCutoffTime = 6; // ms
-	this._resizeDebounce = 250; // ms
+    // internals
+    this.useAO = !!opts.useAO
+    this.aoVals = opts.AOmultipliers
+    this.revAoVal = opts.reverseAOmultiplier
+    this.meshingCutoffTime = 6 // ms
 
-	// set up babylon scene
-	initScene(this, canvas, opts);
+    // set up babylon scene
+    initScene(this, canvas, opts)
 
-	// for debugging
-	if (opts.showFPS) setUpFPS();
+    // for debugging
+    if (opts.showFPS) setUpFPS()
 }
 
 // Constructor helper - set up the Babylon.js scene and basic components
@@ -168,32 +167,30 @@ Rendering.prototype.tick = function (dt) {
 	// nothing here at the moment
 };
 
-Rendering.prototype.render = function (dt) {
-	profile_hook('start');
-	updateCameraForRender(this);
-	profile_hook('updateCamera');
-	this._engine.beginFrame();
-	profile_hook('beginFrame');
+Rendering.prototype.render = function () {
+    profile_hook('start')
+    updateCameraForRender(this)
+    profile_hook('updateCamera')
+    this._engine.beginFrame()
+    profile_hook('beginFrame')
 	this._multiscenes.forEach((scene) => {
-		scene.render();
-	});
-	profile_hook('render');
-	fps_hook();
-	this._engine.endFrame();
-	profile_hook('endFrame');
-	profile_hook('end');
-};
+		scene.render()
+	})
+	profile_hook('render')
+    fps_hook()
+    this._engine.endFrame()
+    profile_hook('endFrame')
+    profile_hook('end')
+}
+
+
 
 Rendering.prototype.resize = function (e) {
-	if (!pendingResize) {
-		pendingResize = true;
-		setTimeout(() => {
-			this._engine.resize();
-			pendingResize = false;
-		}, this._resizeDebounce);
-	}
-};
-var pendingResize = false;
+    this._engine.resize()
+    if (this.noa._paused) this._scene.render()
+}
+
+
 
 Rendering.prototype.highlightBlockFace = function (show, posArr, normArr) {
 	var m = getHighlightMesh(this);
