@@ -48,8 +48,7 @@ export default function (noa) {
         renderSystem: function (dt, states) {
 
             var tickPos = noa.positionInCurrentTick
-            var tickTime = 1000 / noa.container._shell.tickRate
-            var tickMS = tickPos * tickTime
+            var tickMS = tickPos * noa._tickRate
 
             // tickMS is time since last physics engine tick
             // to avoid temporal aliasing, render the state as if lerping between
@@ -58,7 +57,7 @@ export default function (noa) {
             // offsetting each entity into the past by tickRate - dt
             // http://gafferongames.com/game-physics/fix-your-timestep/
 
-            var backtrackAmt = (tickMS - tickTime) / 1000
+            var backtrackAmt = (tickMS - noa._tickRate) / 1000
             states.forEach(state => {
                 var id = state.__id
                 var pdat = noa.ents.getPositionData(id)

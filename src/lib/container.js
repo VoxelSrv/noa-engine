@@ -1,9 +1,5 @@
-
-
-var EventEmitter = require('events').EventEmitter
-var MicroShell = require('micro-game-shell').MicroGameShell
-
-
+var createGameShell = require('game-shell');
+var EventEmitter = require('events').EventEmitter;
 
 export default function (noa, opts) {
 	return new Container(noa, opts);
@@ -12,66 +8,103 @@ export default function (noa, opts) {
 /**
  * @class
  * @typicalname noa.container
- * @emits DOMready, gainedPointerLock, PointerLock
- * @classdesc Wraps `game-shell` module 
+ * @emits DOMready
+ * @classdesc Wraps `game-shell` module
  * and manages HTML container, canvas, etc.
  */
 
 function Container(noa, opts) {
-    opts = opts || {}
-    this._noa = noa
+	opts = opts || {};
+    this._noa = noa;
+    this._tickRate = opts.tickRate;
+	this.element = opts.domElement || createContainerDiv();
+	this.canvas = getOrCreateCanvas(this.element);
+	this._shell = createShell(this.canvas, opts);
 
-    this.element = opts.domElement || createContainerDiv()
-    this.canvas = getOrCreateCanvas(this.element)
+	// mouse state/feature detection
+	this.hasPointerLock = false;
+	this.supportsPointerLock = false;
+	this.pointerInGame = false;
+	this.isFocused = document.hasFocus();
 
-    // shell manages tick/render rates, and pointerlock/fullscreen
-    var pollTime = 10
-    this._shell = new MicroShell(this.element, pollTime)
-    this._shell.tickRate = opts.tickRate
-    this._shell.maxRenderRate = opts.maxRenderRate
-    this._shell.stickyPointerLock = opts.stickyPointerLock
-    this._shell.stickyFullscreen = opts.stickyFullscreen
+	// basic listeners
+	var self = this;
+	var lockChange = function (ev) {
+		onLockChange(self, ev);
+	};
+	document.addEventListener('pointerlockchange', lockChange, false);
+	document.addEventListener('mozpointerlockchange', lockChange, false);
+	document.addEventListener('webkitpointerlockchange', lockChange, false);
+	detectPointerLock(self);
 
-    // mouse state/feature detection
-    this.supportsPointerLock = false
-    this.pointerInGame = false
-    this.isFocused = document.hasFocus()
-    this.hasPointerLock = false
+	self.element.addEventListener('mouseenter', function () {
+		self.pointerInGame = true;
+	});
+	self.element.addEventListener('mouseleave', function () {
+		self.pointerInGame = false;
+	});
 
-    // core timing events
-    this._shell.onTick = (dt) => {
-        noa.tick(dt)
-    }
-    this._shell.onRender = (dt, framePart) => {
-        noa.render(framePart, dt)
-    }
+	window.addEventListener('focus', function () {
+		self.isFocused = true;
+	});
+	window.addEventListener('blur', function () {
+		self.isFocused = false;
+	});
 
-    // shell listeners
-    this._shell.onPointerLockChanged = (hasPL) => {
-        this.hasPointerLock = hasPL
-        this.emit((hasPL) ? 'gainedPointerLock' : 'lostPointerLock')
-        // this works around a Firefox bug where no mouse-in event 
-        // gets issued after starting pointerlock
-        if (hasPL) this.pointerInGame = true
-    }
-    this._shell.onResize = () => {
-        noa.rendering.resize()
-    }
-
-    // catch and relay domReady event
-    this._shell.onInit = () => {
-        // more listeners
-        detectPointerLock(this)
-        this.element.addEventListener('mouseenter', () => { this.pointerInGame = true })
-        this.element.addEventListener('mouseleave', () => { this.pointerInGame = false })
-        window.addEventListener('focus', () => { this.isFocused = true })
-        window.addEventListener('blur', () => { this.isFocused = false })
-        // emit for engine core
-        this.emit('DOMready')
-    }
+	// get shell events after it's initialized
+	this._shell.on('init', onShellInit.bind(null, this));
 }
 
-Container.prototype = Object.create(EventEmitter.prototype)
+Container.prototype = Object.create(EventEmitter.prototype);
+
+/*
+ *   SHELL EVENTS
+ */
+
+function onShellInit(self) {
+    // create shell listeners that drive engine functions
+    var noa = self._noa;
+    var shell = self._shell;
+    shell.on('resize', noa.rendering.resize.bind(noa.rendering));
+
+    // override shell's timing with simpler internal implementation
+    setupTimingEvents(self);
+
+    // let other components know DOM is ready
+    self.emit('DOMready');
+}
+
+
+
+
+
+function setupTimingEvents(self) {
+    var noa = self._noa
+    var tickRate = self._tickRate
+    var lastRAF = performance.now()
+    var tickAccum = 0
+    var onAnimationFrame = function () {
+        var t0 = performance.now()
+        var dt = t0 - lastRAF
+        tickAccum += dt
+        // do at most two ticks per render
+        var maxTicks = 2
+        while (tickAccum > tickRate && maxTicks-- > 0) {
+            noa.tick(tickRate)
+            tickAccum -= tickRate
+        }
+        // don't accrue deficit when running slow
+        if (tickAccum > tickRate) tickAccum = 0
+        var t1 = performance.now()
+        var renderPt = tickAccum + (t1 - t0)
+        var framePart = Math.min(1, renderPt / tickRate)
+        noa.render(framePart)
+        lastRAF = t0
+        requestAnimationFrame(onAnimationFrame)
+    }
+    requestAnimationFrame(onAnimationFrame)
+}
+
 
 
 
@@ -112,6 +145,17 @@ function createContainerDiv() {
 	return container;
 }
 
+function createShell(canvas, opts) {
+	var shellDefaults = {
+		pointerLock: false,
+		preventDefaults: false,
+	};
+	opts = Object.assign(shellDefaults, opts);
+	opts.element = canvas;
+	var shell = createGameShell(opts);
+	shell.preventDefaults = opts.preventDefaults;
+	return shell;
+}
 
 function getOrCreateCanvas(el) {
 	// based on github.com/stackgl/gl-now - default canvas
@@ -129,6 +173,23 @@ function getOrCreateCanvas(el) {
 	return canvas;
 }
 
+// track changes in Pointer Lock state
+function onLockChange(self, ev) {
+	var el = document.pointerLockElement || document.mozPointerLockElement || document.webkitPointerLockElement;
+	if (el) {
+		self.hasPointerLock = true;
+		self.emit('gainedPointerLock');
+	} else {
+		self.hasPointerLock = false;
+		self.emit('lostPointerLock');
+	}
+	// this works around a Firefox bug where no mouse-in event
+	// gets issued after starting pointerlock
+	if (el) {
+		// act as if pointer is in game window while pointerLock is true
+		self.pointerInGame = true;
+	}
+}
 
 // set up stuff to detect pointer lock support.
 // Needlessly complex because Chrome/Android claims to support but doesn't.
