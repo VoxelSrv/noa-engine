@@ -294,57 +294,58 @@ Engine.prototype.tick = function () {
  * where dt is the time in ms *since the last tick*.
  */
 
-Engine.prototype.render = function (framePart) {
-	// frame position - for rendering movement between ticks
-	this.positionInCurrentTick = framePart;
-	// dt - actual time difference (in ms), for animating things
-	// that aren't tied to game tick rate
-	var t = performance.now();
-	var dt = t - (this._lastRenderTime || t - 16);
-	this._lastRenderTime = t;
+Engine.prototype.render = function (framePart, dt) {
+    // note: framePart is how far we are into the current tick
+    // dt is the *actual* time (ms) since last render, for
+    // animating things that aren't tied to game tick rate
 
-	// when paused, just optionally ping worldgen, then exit
-	if (this._paused) {
-		if (this.world.worldGenWhilePaused) this.world.render();
-		return;
-	}
+    // frame position - for rendering movement between ticks
+    this.positionInCurrentTick = framePart
 
-	profile_hook_render('start');
+    // when paused, just optionally ping worldgen, then exit
+    if (this._paused) {
+        if (this.world.worldGenWhilePaused) this.world.render()
+        return
+    }
 
-	// only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-	if (
-		this.container.hasPointerLock ||
-		!this.container.supportsPointerLock ||
-		(this._dragOutsideLock && this.inputs.state.fire)
-	) {
-		this.camera.applyInputsToCamera();
-	}
-	profile_hook_render('init');
+    profile_hook_render('start')
 
-	// brief run through meshing queue
-	this.world.render(dt);
-	profile_hook_render('meshing');
+    // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
+    this.camera.applyInputsToCamera()
+    profile_hook_render('init')
 
-	// entity render systems
-	this.camera.updateBeforeEntityRenderSystems();
-	this.entities.render(dt);
-	this.camera.updateAfterEntityRenderSystems();
-	profile_hook_render('entities');
+    // brief run through meshing queue
+    this.world.render()
+    profile_hook_render('meshing')
 
-	// events and render
-	this.emit('beforeRender', dt);
-	profile_hook_render('before render');
+    // entity render systems
+    this.camera.updateBeforeEntityRenderSystems()
+    this.entities.render(dt)
+    this.camera.updateAfterEntityRenderSystems()
+    profile_hook_render('entities')
 
-	this.rendering.render(dt);
-	profile_hook_render('render');
+    // events and render
+    this.emit('beforeRender', dt)
+    profile_hook_render('before render')
 
-	this.emit('afterRender', dt);
-	profile_hook_render('after render');
-	profile_hook_render('end');
+    this.rendering.render(dt)
+    profile_hook_render('render')
 
-	// clear accumulated mouseMove inputs (scroll inputs cleared on render)
-	this.inputs.state.dx = this.inputs.state.dy = 0;
-};
+    this.emit('afterRender', dt)
+    profile_hook_render('after render')
+    profile_hook_render('end')
+
+    // clear accumulated mouseMove inputs (scroll inputs cleared on render)
+    this.inputs.state.dx = this.inputs.state.dy = 0
+}
+
+
+
+
+
+
+
+
 
 /*
  *   Rebasing local <-> global coords
@@ -448,7 +449,7 @@ Engine.prototype.getBlock = function (x, y, z) {
 	}
 };
 
-/** @param x,y,z */
+/** @param id,x,y,z */
 Engine.prototype.setBlock = function (id, x, y, z) {
 	// skips the entity collision check
 	if (x.length) {
