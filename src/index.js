@@ -104,7 +104,6 @@ function Engine(opts) {
     opts = Object.assign({}, defaults, opts)
     this._paused = false
 	this._dragOutsideLock = opts.dragCameraOutsidePointerLock
-	this.world.tickInUnloadedChunks = opts.tickInUnloadedChunks
 	this.ignorePointerLock = opts.ignorePointerLock
 
     var self = this

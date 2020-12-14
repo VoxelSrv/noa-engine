@@ -56,6 +56,8 @@ function World(noa, opts) {
 
     // set this higher to cause chunks not to mesh until they have some neighbors
     this.minNeighborsToMesh = 6
+    this.tickInUnloadedChunks = opts.tickInUnloadedChunks
+
 
     // settings for tuning worldgen behavior and throughput
     this.maxChunksPendingCreation = 10
