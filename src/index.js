@@ -46,7 +46,9 @@ var defaults = {
     dragCameraOutsidePointerLock: true,
     stickyFullscreen: false,
     skipDefaultHighlighting: false,
-    originRebaseDistance: 25,
+	originRebaseDistance: 25,
+	tickInUnloadedChunks: false,
+	ignorePointerLock: false,
 }
 
 
@@ -70,6 +72,7 @@ var defaults = {
  *     stickyFullscreen: false,
  *     skipDefaultHighlighting: false,
  *     originRebaseDistance: 25,
+ *     tickInUnloadedChunks: false
  * }
  * var NoaEngine = require('noa-engine')
  * var noa = NoaEngine(opts)
@@ -100,7 +103,10 @@ function Engine(opts) {
 
     opts = Object.assign({}, defaults, opts)
     this._paused = false
-    this._dragOutsideLock = opts.dragCameraOutsidePointerLock
+	this._dragOutsideLock = opts.dragCameraOutsidePointerLock
+	this.world.tickInUnloadedChunks = opts.tickInUnloadedChunks
+	this.ignorePointerLock = opts.ignorePointerLock
+
     var self = this
 
     if (!opts.silent) {
@@ -296,7 +302,7 @@ Engine.prototype.tick = function (dt) {
     checkWorldOffset(this)
     this.world.tick(dt) // chunk creation/removal
     profile_hook('world')
-    if (!this.world.playerChunkLoaded) {
+    if (!this.world.playerChunkLoaded && !this.world.tickInUnloadedChunks ) {
         // when waiting on worldgen, just tick the meshing queue and exit
         this.rendering.tick(dt)
         return
@@ -343,7 +349,7 @@ Engine.prototype.render = function (framePart, dt) {
     profile_hook_render('start')
 
     // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
-    if (this.container.hasPointerLock ||
+    if (this.ignorePointerLock || this.container.hasPointerLock ||
         !this.container.supportsPointerLock ||
         (this._dragOutsideLock && this.inputs.state.fire)) {
         this.camera.applyInputsToCamera()
