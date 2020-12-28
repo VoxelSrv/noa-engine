@@ -40,6 +40,7 @@ export declare class World {
     tick(): void;
     render(): void;
     report(): void;
+    [i: string]: any;
 }
 import Chunk from "./chunk";
 export {};

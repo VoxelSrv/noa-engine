@@ -26,6 +26,9 @@ export declare class Rendering {
     _rebaseOrigin(delta: any): void;
     debug_SceneCheck(): string;
     debug_MeshCount(): void;
+
+    [i: string]: any;
+
 }
 
 type ColorNumbers = number[];

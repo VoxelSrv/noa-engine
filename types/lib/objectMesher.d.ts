@@ -11,4 +11,6 @@ export declare class ObjectMesher {
     removeObjectBlock: (chunk: any, x: number, y: number, z: number) => void;
     removeObjectMeshes: (chunk: any) => void;
     buildObjectMeshes: (chunk: any) => any[];
+    [i: string]: any;
+
 }

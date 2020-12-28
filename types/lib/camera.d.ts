@@ -71,5 +71,7 @@ export declare class Camera {
     applyInputsToCamera(): void;
     updateBeforeEntityRenderSystems(): void;
     updateAfterEntityRenderSystems(): void;
+    [i: string]: any;
+
 }
 export {};

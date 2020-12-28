@@ -17,4 +17,7 @@ export declare class Container {
     isFocused: boolean;
     appendTo(htmlElement: any): void;
     setPointerLock(lock: any): void;
+
+    [i: string]: any;
+
 }

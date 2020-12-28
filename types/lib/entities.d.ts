@@ -50,6 +50,7 @@ export declare class Entities {
     addComponent(id: number, name: string, state?: Object): void;
     isTerrainBlocked(x: number, y: number, z: number): boolean;
     getEntitiesInAABB(box: number, withComponent: any): any[];
+    getState: (id: number, name: string) => any;
 
     /** Helper to set up a general entity, and populate with some common components depending on arguments. */
     add(
@@ -61,5 +62,8 @@ export declare class Entities {
         doPhysics?: boolean,
         shadow?: boolean
     ): any;
+
+    [i: string]: any;
+
 }
 export {};

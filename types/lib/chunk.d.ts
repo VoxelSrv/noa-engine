@@ -47,4 +47,6 @@ export declare class Chunk {
     ): any;
     updateMeshes(): void;
     dispose(): void;
+    [i: string]: any;
+
 }

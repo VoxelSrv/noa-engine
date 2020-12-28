@@ -1,5 +1,3 @@
-export default Engine;
-
 type EngineOptions = Partial<
     {
         debug: boolean;
@@ -201,6 +199,8 @@ declare module "noa-engine" {
             position: number[];
             normal: number[];
         };
+
+        [i: string]: any;
     }
 }
 

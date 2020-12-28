@@ -104,4 +104,6 @@ export declare class Registry {
     _blockMeshLookup: any[];
     _blockHandlerLookup: any[];
     _getMaterialVertexColor: (matid: number) => any;
+    [i: string]: any;
+
 }
