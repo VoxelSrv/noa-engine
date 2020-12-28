@@ -69,7 +69,7 @@ export declare class Registry {
      */
     registerMaterial: (
         name: string,
-        color?: string,
+        color?: string | number[],
         textureURL?: string,
         texHasAlpha?: boolean,
         renderMaterial?: Material
