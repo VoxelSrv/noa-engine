@@ -19,7 +19,7 @@ import createCamera from './lib/camera'
 import createRegistry from './lib/registry'
 import createEntities from './lib/entities'
 
-
+import { isMobile } from 'mobile-device-detect'
 
 
 export default Engine
@@ -350,7 +350,7 @@ Engine.prototype.render = function (framePart, dt) {
     // only move camera during pointerlock or mousedown, or if pointerlock is unsupported
     if (this.ignorePointerLock || this.container.hasPointerLock ||
         !this.container.supportsPointerLock ||
-        (this._dragOutsideLock && this.inputs.state.fire)) {
+        (this._dragOutsideLock && isMobile && this.inputs.state.fire)) {
         this.camera.applyInputsToCamera()
     }
     profile_hook_render('init')
@@ -650,30 +650,7 @@ function deprecateStuff(noa) {
         var throwFn = () => { throw `This property changed in ${ver} - ${msg}` }
         Object.defineProperty(loc, name, { get: throwFn, set: throwFn })
     }
-    dep(noa, 'getPlayerEyePosition', 'to get the camera/player offset see API docs for `noa.camera.cameraTarget`')
-    dep(noa, 'setPlayerEyePosition', 'to set the camera/player offset see API docs for `noa.camera.cameraTarget`')
-    dep(noa, 'getPlayerPosition', 'use `noa.ents.getPosition(noa.playerEntity)` or similar')
-    dep(noa, 'getCameraVector', 'use `noa.camera.getDirection`')
-    dep(noa, 'getPlayerMesh', 'use `noa.ents.getMeshData(noa.playerEntity).mesh` or similar')
-    dep(noa, 'playerBody', 'use `noa.ents.getPhysicsBody(noa.playerEntity)`')
-    dep(noa.rendering, 'zoomDistance', 'use `noa.camera.zoomDistance`')
-    dep(noa.rendering, '_currentZoom', 'use `noa.camera.currentZoom`')
-    dep(noa.rendering, '_cameraZoomSpeed', 'use `noa.camera.zoomSpeed`')
-    dep(noa.rendering, 'getCameraVector', 'use `noa.camera.getDirection`')
-    dep(noa.rendering, 'getCameraPosition', 'use `noa.camera.getLocalPosition`')
-    dep(noa.rendering, 'getCameraRotation', 'use `noa.camera.heading` and `noa.camera.pitch`')
-    dep(noa.rendering, 'setCameraRotation', 'to customize camera behavior see API docs for `noa.camera`')
-    ver = '0.28'
-    dep(noa.rendering, 'makeMeshInstance', 'removed, use Babylon\'s `mesh.createInstance`')
-    dep(noa.world, '_maxChunksPendingCreation', 'use `maxChunksPendingCreation` (no "_")')
-    dep(noa.world, '_maxChunksPendingMeshing', 'use `maxChunksPendingMeshing` (no "_")')
-    dep(noa.world, '_maxProcessingPerTick', 'use `maxProcessingPerTick` (no "_")')
-    dep(noa.world, '_maxProcessingPerRender', 'use `maxProcessingPerRender` (no "_")')
-    ver = '0.29'
-    dep(noa, '_constants', 'removed, voxel IDs are no longer packed with bit flags')
-    ver = '0.30'
-    dep(noa, '_tickRate', 'tickRate is now at `noa.tickRate`')
-    dep(noa.container, '_tickRate', 'tickRate is now at `noa.tickRate`')
+    
 }
 
 
