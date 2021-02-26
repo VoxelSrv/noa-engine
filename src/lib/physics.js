@@ -1,6 +1,7 @@
 
-var createPhysics = require('voxel-physics-engine')
-// var createPhysics = require('../../../../npm-modules/voxel-physics-engine')
+var createPhysics
+createPhysics = require('./voxel-physics-engine')
+// It errors for me otherwise...
 
 
 export default function (noa, opts) {
@@ -27,20 +28,25 @@ function makePhysics(noa, opts) {
     var world = noa.world
     var solidLookup = noa.registry._solidityLookup
     var fluidLookup = noa.registry._fluidityLookup
-    
+    var colisionLookup = noa.registry._colisionLookup
+
     // physics engine runs in offset coords, so voxel getters need to match
     var offset = noa.worldOriginOffset
 
     var blockGetter = (x, y, z) => {
         var id = world.getBlockID(x + offset[0], y + offset[1], z + offset[2])
-        return solidLookup[id]
+        return solidLookup[id] ? true : false
     }
     var isFluidGetter = (x, y, z) => {
         var id = world.getBlockID(x + offset[0], y + offset[1], z + offset[2])
         return fluidLookup[id]
     }
+    var customColisionGetter = (x, y, z) => {
+        var id = world.getBlockID(x + offset[0], y + offset[1], z + offset[2])
+        return colisionLookup[id]
+    }
 
-    var physics = createPhysics(opts, blockGetter, isFluidGetter)
+    var physics = createPhysics(opts, blockGetter, isFluidGetter, customColisionGetter)
 
     return physics
 }

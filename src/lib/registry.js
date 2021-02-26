@@ -58,6 +58,7 @@ function Registry(noa, opts) {
     // lookup arrays for block props and flags - all keyed by blockID
     // fill in first value for id=0, empty space
     var blockSolidity = [false]
+    var blockCustomColision = [null]
     var blockOpacity = [false]
     var blockIsFluid = [false]
     var blockIsObject = [false]
@@ -129,6 +130,7 @@ function Registry(noa, opts) {
         blockSolidity[id] = !!opts.solid
         blockOpacity[id] = !!opts.opaque
         blockIsFluid[id] = !!opts.fluid
+        blockCustomColision[id] = !!opts.customColision ? opts.customColision : null;
 
         // store any custom mesh
         blockIsObject[id] = !!opts.blockMesh
@@ -219,6 +221,10 @@ function Registry(noa, opts) {
         return blockSolidity[id]
     }
 
+    this.getBlockCustomColision = function (id) {
+        return blockCustomColision[id]
+    }
+
     /**
      * block opacity - whether it obscures the whole voxel (dirt) or 
      * can be partially seen through (like a fencepost, etc)
@@ -287,6 +293,7 @@ function Registry(noa, opts) {
     this._objectLookup = blockIsObject
     this._blockMeshLookup = blockMeshes
     this._blockHandlerLookup = blockHandlers
+    this._colisionLookup = blockCustomColision
 
 
 

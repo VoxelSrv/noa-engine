@@ -51,6 +51,8 @@ export declare class Registry {
             fluidDensity?: number;
             // viscosity: (0.5) for fluid blocks
             viscosity?: number;
+
+            customColision?: object[]
             onLoad?: (x: number, y: number, z: number) => void;
             onUnload?: (x: number, y: number, z: number) => void;
             onSet?: (x: number, y: number, z: number) => void;
@@ -90,6 +92,7 @@ export declare class Registry {
      * @param id
      */
     getBlockFluidity: (id: number) => boolean;
+    getBlockCustomColision: (id: number) => object[] | null;
     /**
      * Get block property object passed in at registration
      * @param id
