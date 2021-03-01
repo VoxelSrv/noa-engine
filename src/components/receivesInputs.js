@@ -23,16 +23,18 @@ export default function (noa) {
         onRemove: null,
 
         system: function inputProcessor(dt, states) {
-            var ents = noa.entities;
-            var inputState = noa.inputs.state;
-            var camHeading = noa.camera.heading;
+            var ents = noa.entities
+            var inputState = noa.inputs.state
+            var camHeading = noa.camera.heading
 
-            states.forEach((state) => {
-                var moveState = ents.getMovement(state.__id);
-                setMovementState(moveState, inputState, camHeading, state.ignore, state.x, state.y);
-            });
-        },
-    };
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i]
+                var moveState = ents.getMovement(state.__id)
+                setMovementState(moveState, inputState, camHeading, state.ignore, state.x, state.y)
+            }
+        }
+
+    }
 }
 
 function setMovementState(state, inputs, camHeading, ignore, x, y) {

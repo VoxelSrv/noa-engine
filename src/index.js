@@ -20,6 +20,8 @@ import createRegistry from './lib/registry'
 import createEntities from './lib/entities'
 
 import { isMobile } from 'mobile-device-detect'
+import { locationHasher } from './lib/util'
+
 
 
 export default Engine
@@ -331,7 +333,7 @@ Engine.prototype.tick = function (dt) {
  * where dt is the time in ms *since the last tick*.
  */
 
-Engine.prototype.render = function (framePart, dt) {
+Engine.prototype.render = function (dt, framePart) {
     // note: framePart is how far we are into the current tick
     // dt is the *actual* time (ms) since last render, for
     // animating things that aren't tied to game tick rate
@@ -462,9 +464,8 @@ function checkWorldOffset(noa) {
     if (vec3.sqrLen(lpos) < cutoff * cutoff) return
     var delta = []
     for (var i = 0; i < 3; i++) {
-        var d = Math.floor(lpos[i])
-        delta[i] = d
-        noa.worldOriginOffset[i] += d
+        delta[i] = Math.floor(lpos[i])
+        noa.worldOriginOffset[i] += delta[i]
     }
     noa.rendering._rebaseOrigin(delta)
     noa.entities._rebaseOrigin(delta)
@@ -605,7 +606,7 @@ var _hitResult = {
 // Each frame, by default pick along the player's view vector 
 // and tell rendering to highlight the struck block face
 function updateBlockTargets(noa) {
-    var newhash = ''
+    var newhash = 0
     var blockIdFn = noa.blockTargetIdCheck || noa.registry.getBlockSolidity
     var result = noa._localPick(null, null, null, blockIdFn)
     if (result) {
@@ -616,7 +617,7 @@ function updateBlockTargets(noa) {
         vec3.sub(dat.position, dat.adjacent, dat.normal)
         dat.blockID = noa.world.getBlockID(dat.position[0], dat.position[1], dat.position[2])
         noa.targetedBlock = dat
-        newhash = dat.position.join('|') + dat.normal.join('|') + '|' + dat.blockID
+        newhash = makeTargetHash(dat.position, dat.normal, dat.blockID, locationHasher)
     } else {
         noa.targetedBlock = null
     }
@@ -632,8 +633,13 @@ var _targetedBlockDat = {
     normal: [],
     adjacent: [],
 }
+var _prevTargetHash = 0
+var makeTargetHash = (pos, norm, id, hashFn) => {
+    var N = hashFn(pos[0], pos[1], pos[2])
+    return N ^ (id + 7 * norm[0] + 13 * norm[1] + 17 * norm[2])
+}
 
-var _prevTargetHash = ''
+
 
 
 
