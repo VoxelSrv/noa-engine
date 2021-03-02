@@ -30,7 +30,6 @@ export default Chunk
 function Chunk(noa, requestID, i, j, k, size, dataArray) {
     this.noa = noa
     this.isDisposed = false
-    this.octreeBlock = null
 
     // voxel data and properties
     this.requestID = requestID     // id sent to game client
@@ -132,8 +131,8 @@ Chunk.prototype.set = function (x, y, z, newID) {
     this.voxels.set(x, y, z, newID)
 
     // voxel lifecycle handling
-    if (objectLookup[oldID]) removeObjectBlock(this, x, y, z)
-    if (objectLookup[newID]) addObjectBlock(this, newID, x, y, z)
+    if (objectLookup[oldID]) setObjectBlockState(this, 0, x, y, z)
+    if (objectLookup[newID]) setObjectBlockState(this, newID, x, y, z)
     var hold = blockHandlerLookup[oldIDnum]
     if (hold) callBlockHandler(this, hold, 'onUnset', x, y, z)
     var hnew = blockHandlerLookup[newID]
@@ -151,27 +150,24 @@ Chunk.prototype.set = function (x, y, z, newID) {
     }
 
     // neighbors only affected if solidity or opacity changed on an edge
-    var SOchanged = false
-    if (solidLookup[oldID] !== solidLookup[newID]) SOchanged = true
-    if (opaqueLookup[oldID] !== opaqueLookup[newID]) SOchanged = true
+    var SOchanged = (solidLookup[oldID] !== solidLookup[newID])
+        || (opaqueLookup[oldID] !== opaqueLookup[newID])
     if (SOchanged) {
         var edge = this.size - 1
-        var iedge = (x === 0) ? -1 : (x < edge) ? 0 : 1
-        var jedge = (y === 0) ? -1 : (y < edge) ? 0 : 1
-        var kedge = (z === 0) ? -1 : (z < edge) ? 0 : 1
-        if (iedge | jedge | kedge) {
-            var ivals = (iedge) ? [0, iedge] : [0]
-            var jvals = (jedge) ? [0, jedge] : [0]
-            var kvals = (kedge) ? [0, kedge] : [0]
-            for (var i of ivals) {
-                for (var j of jvals) {
-                    for (var k of kvals) {
-                        if ((i | j | k) === 0) return
-                        var nab = this._neighbors.get(i, j, k)
-                        if (!nab) return
-                        nab._terrainDirty = true
-                        this.noa.world._queueChunkForRemesh(nab)
-                    }
+        var imin = (x === 0) ? -1 : 0
+        var imax = (x === edge) ? 1 : 0
+        var jmin = (y === 0) ? -1 : 0
+        var jmax = (y === edge) ? 1 : 0
+        var kmin = (z === 0) ? -1 : 0
+        var kmax = (z === edge) ? 1 : 0
+        for (var i = imin; i <= imax; i++) {
+            for (var j = jmin; j <= jmax; j++) {
+                for (var k = kmin; k <= kmax; k++) {
+                    if ((i | j | k) === 0) continue
+                    var nab = this._neighbors.get(i, j, k)
+                    if (!nab) return
+                    nab._terrainDirty = true
+                    this.noa.world._queueChunkForRemesh(nab)
                 }
             }
         }
@@ -180,15 +176,19 @@ Chunk.prototype.set = function (x, y, z, newID) {
 
 
 
-
-
+// helper to track the state of all object blocks in the chunk
+function setObjectBlockState(chunk, blockID, i, j, k) {
+    objectMesher.setObjectBlock(chunk, blockID, i, j, k)
+    chunk._objectsDirty = true
+}
 
 // helper to call handler of a given type at a particular xyz
-function callBlockHandler(chunk, handlers, type, x, y, z) {
+function callBlockHandler(chunk, handlers, type, i, j, k) {
     var handler = handlers[type]
     if (!handler) return
-    handler(chunk.x + x, chunk.y + y, chunk.z + z)
+    handler(chunk.x + i, chunk.y + j, chunk.z + k)
 }
+
 
 
 
@@ -262,7 +262,6 @@ function scanVoxelData(chunk) {
     // flags for tracking if chunk is entirely opaque or transparent
     var fullyOpaque = true
     var fullyAir = true
-    var hasObj = false
 
     var voxels = chunk.voxels
     var data = voxels.data
@@ -282,8 +281,7 @@ function scanVoxelData(chunk) {
                 fullyAir = false
                 // handle object blocks and handlers
                 if (objectLookup[id]) {
-                    addObjectBlock(chunk, id, i, j, k)
-                    hasObj = true
+                    setObjectBlockState(chunk, id, i, j, k)
                 }
                 var handlers = handlerLookup[id]
                 if (handlers) {
@@ -296,24 +294,13 @@ function scanVoxelData(chunk) {
     chunk.isFull = fullyOpaque
     chunk.isEmpty = fullyAir
     chunk._terrainDirty = !chunk.isEmpty
-    chunk._objectsDirty = hasObj
 }
 
 
 
 
 
-// accessors related to meshing
 
-function addObjectBlock(chunk, id, x, y, z) {
-    objectMesher.addObjectBlock(chunk, id, x, y, z)
-    chunk._objectsDirty = true
-}
-
-function removeObjectBlock(chunk, x, y, z) {
-    objectMesher.removeObjectBlock(chunk, x, y, z)
-    chunk._objectsDirty = true
-}
 
 
 
