@@ -20,6 +20,8 @@ import createRegistry from './lib/registry'
 import createEntities from './lib/entities'
 
 import { isMobile } from 'mobile-device-detect'
+import ObjectMesher from './lib/objectMesher'
+import TerrainMesher from './lib/terrainMesher'
 import { locationHasher } from './lib/util'
 
 
@@ -252,6 +254,9 @@ function Engine(opts) {
         this.on('targetBlockChanged', this.defaultBlockHighlightFunction)
     }
 
+    // various internals
+    this._terrainMesher = new TerrainMesher(this)
+    this._objectMesher = new ObjectMesher()
 
     // temp hacks for development
     if (opts.debug) {
