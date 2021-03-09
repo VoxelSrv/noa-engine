@@ -54,6 +54,32 @@ function sweep_impl(getVoxel, getColision, callback, vec, base, max, epsilon, co
 
     // loop along raycast vector
     while (t <= max_t) {
+        /*for (var x = -1; x <= 1; x++) {
+            for (var y = -1; y <= 2; y++) {
+                for (var z = -1; z <= 1; z++) {
+                    var tx = x + (axis === 0) ? ldi[0] : tri[0]
+                    var ty = y + (axis === 1) ? ldi[1] : tri[1]
+                    var tz = z + (axis === 2) ? ldi[2] : tri[2]
+                    
+                    console.log(tx, ty, tz)
+                    var colision = getColision(tx, ty, tz)
+                    if (colision != null) {
+                        for (var tmp of colision) {
+                            var offsetAABB = aabb([ tmp.base[0], tmp.base[1], tmp.base[2]],
+                                [tmp.max[0],  tmp.max[1], tmp.max[2]])
+                            offsetAABB.translate([tx, ty, tz])
+    
+                            var entityAABB = aabb([ colisionBox.base[0],colisionBox.base[1], colisionBox.base[2] ], [...colisionBox.vec])
+    
+                            if (offsetAABB.intersects(entityAABB)) {
+                                var done = handleCollision()
+                                if (done) return cumulative_t
+                            }
+                        }
+                    }
+                }
+            }
+        }*/
 
         // sweeps over leading face of AABB
         if (checkCollision(axis)) {
@@ -137,22 +163,7 @@ function sweep_impl(getVoxel, getColision, callback, vec, base, max, epsilon, co
             for (var y = y0; y != y1; y += stepy) {
                 for (var z = z0; z != z1; z += stepz) {
                     if (getVoxel(x, y, z)) {
-                        var colision = getColision(x, y, z)
-                        if (colision == null) {
-                            return true
-                        } else {
-                            for (var tmp of colision) {
-                                var offsetAABB = aabb([ tmp.base[0], tmp.base[1], tmp.base[2]],
-                                 [tmp.max[0],  tmp.max[1], tmp.max[2]])
-								offsetAABB.translate([x, y, z])
-
-                                var entityAABB = aabb([ colisionBox.base[0],colisionBox.base[1], colisionBox.base[2] ], [...colisionBox.vec])
-
-                                if (offsetAABB.intersects(entityAABB)) {
-                                    return true;
-                                }
-                            }
-                        }
+                        return true
                     }
                 }
             }

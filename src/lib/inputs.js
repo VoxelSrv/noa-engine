@@ -25,9 +25,7 @@ var defaultBindings = {
         "fire": "<mouse 1>",
         "mid-fire": ["<mouse 2>", "Q"],
         "alt-fire": ["<mouse 3>", "E"],
-        "jump": "<space>",
-        "sprint": "<shift>",
-        "crouch": "<control>"
+        "jump": "<space>"
     }
 }
 

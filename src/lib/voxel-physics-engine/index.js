@@ -19,6 +19,7 @@ var defaults = {
     airDrag: 0.1,
     fluidDrag: 0.4,
     fluidDensity: 2.0,
+    lockToBlock: false
 }
 
 

@@ -25,6 +25,8 @@ export default function (noa) {
             // options:
             maxSpeed: 10,
             moveForce: 30,
+            sprintMoveMult: 1.2,
+            crouchMoveMult: 0.5,
             responsiveness: 15,
             runningFriction: 0,
             standingFriction: 2,
@@ -106,8 +108,8 @@ function applyMovementPhysics(dt, state, body) {
 
         var speed = state.maxSpeed
         // todo: add crouch/sprint modifiers if needed
-        // if (state.sprint) speed *= state.sprintMoveMult
-        // if (state.crouch) speed *= state.crouchMoveMult
+        if (state.crouch) speed *= state.crouchMoveMult
+        else if (state.sprint) speed *= state.sprintMoveMult
         vec3.set(m, 0, 0, speed)
 
         // rotate move vector to entity's heading
