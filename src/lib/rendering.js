@@ -79,7 +79,6 @@ function Rendering(noa, opts, canvas) {
     this.aoVals = opts.AOmultipliers
     this.revAoVal = opts.reverseAOmultiplier
     this.meshingCutoffTime = 6 // ms
-    this._meshesToFreeze = []
 
     // set up babylon scene
     initScene(this, canvas, opts)
@@ -178,9 +177,7 @@ Rendering.prototype.render = function () {
 
 
 Rendering.prototype.postRender = function () {
-    while (this._meshesToFreeze.length > 0) {
-        this._meshesToFreeze.pop().freezeWorldMatrix()
-    }
+    // nothing currently
 }
 
 
@@ -262,16 +259,21 @@ Rendering.prototype.addMeshToScene = function (mesh, isStatic, pos, containingCh
 
 
 
-
-// Create a default standardMaterial:
-//      flat, nonspecular, fully reflects diffuse and ambient light
+/**
+ * Create a default standardMaterial:      
+ * flat, nonspecular, fully reflects diffuse and ambient light
+ */
 Rendering.prototype.makeStandardMaterial = function (name) {
     var mat = new StandardMaterial(name, this._scene)
     mat.specularColor.copyFromFloats(0, 0, 0)
     mat.ambientColor.copyFromFloats(1, 1, 1)
     mat.diffuseColor.copyFromFloats(1, 1, 1)
+    this.postMaterialCreationHook(mat)
     return mat
 }
+
+/** Exposed hook for if the client wants to do something to newly created materials */
+Rendering.prototype.postMaterialCreationHook = function (mat) { }
 
 
 
@@ -323,10 +325,9 @@ Rendering.prototype._rebaseOrigin = function (delta) {
         // move each mesh by delta (even though most are managed by components)
         mesh.position.subtractInPlace(dvec)
 
-        // unfreeze terrain meshes for one render
         if (mesh._isWorldMatrixFrozen) {
-            mesh.unfreezeWorldMatrix()
-            this._meshesToFreeze.push(mesh)
+            // paradoxically this unfreezes, then re-freezes the matrix
+            mesh.freezeWorldMatrix()
         }
     })
 
